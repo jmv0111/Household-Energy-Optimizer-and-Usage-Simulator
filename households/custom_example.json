@@ -1,0 +1,22 @@
+{
+  "name": "Example present-day household (hand-entered)",
+  "source": "Hand-entered example; missing wattages/hours are filled from the HECS catalogue",
+  "appliances": [
+    {"name": "Refrigerator", "catalogue": "Refrigerator, frost-free", "type": "fixed"},
+    {"name": "Wi-Fi router", "type": "fixed", "watts": 10},
+
+    {"name": "LED lights", "catalogue": "Lighting - LED bulb", "watts": 9, "quantity": 6,
+     "max_hours": 5, "min_hours": 3, "priority": 1},
+    {"name": "Electric fan", "quantity": 2, "max_hours": 8, "priority": 2},
+    {"name": "Rice cooker", "max_hours": 1, "priority": 3},
+    {"name": "Laptop", "catalogue": "Personal computer, LCD monitor", "watts": 65,
+     "max_hours": 6, "days_per_week": 5, "priority": 4},
+    {"name": "LED TV", "catalogue": "Color TV - LED screen", "watts": 90, "max_hours": 4,
+     "priority": 5},
+    {"name": "Washing machine", "catalogue": "Washing machine, automatic",
+     "max_hours": 2, "days_per_week": 2, "priority": 6},
+    {"name": "Electric flat iron", "max_hours": 1, "days_per_week": 1, "priority": 7},
+    {"name": "Inverter aircon (1.0 HP)", "catalogue": "Airconditioner, split type (inverter)",
+     "watts": 750, "max_hours": 8, "priority": 8}
+  ]
+}

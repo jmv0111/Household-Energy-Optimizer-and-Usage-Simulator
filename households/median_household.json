@@ -1,0 +1,169 @@
+{
+  "name": "Typical Metro Manila household",
+  "source": "HECS 2011 QID 750117700200068004",
+  "appliances": [
+    {
+      "name": "Refrigerator, ordinary",
+      "catalogue": "Refrigerator, ordinary",
+      "type": "fixed",
+      "watts": 100.0,
+      "quantity": 1
+    },
+    {
+      "name": "Lighting - Linear fluorescent tube #1",
+      "catalogue": "Lighting - Linear fluorescent tube",
+      "type": "variable",
+      "watts": 50.0,
+      "quantity": 1,
+      "max_hours": 3.0,
+      "min_hours": 2.0,
+      "days_per_week": 7.0,
+      "priority": 1
+    },
+    {
+      "name": "Lighting - Linear fluorescent tube #2",
+      "catalogue": "Lighting - Linear fluorescent tube",
+      "type": "variable",
+      "watts": 30.0,
+      "quantity": 1,
+      "max_hours": 4.0,
+      "min_hours": 2.0,
+      "days_per_week": 7.0,
+      "priority": 2
+    },
+    {
+      "name": "Lighting - Compact fluorescent lamp (CFL) #2",
+      "catalogue": "Lighting - Compact fluorescent lamp (CFL)",
+      "type": "variable",
+      "watts": 18.0,
+      "quantity": 2,
+      "max_hours": 2.0,
+      "min_hours": 2.0,
+      "days_per_week": 7.0,
+      "priority": 3
+    },
+    {
+      "name": "Lighting - Compact fluorescent lamp (CFL) #3",
+      "catalogue": "Lighting - Compact fluorescent lamp (CFL)",
+      "type": "variable",
+      "watts": 18.0,
+      "quantity": 1,
+      "max_hours": 6.0,
+      "min_hours": 2.0,
+      "days_per_week": 7.0,
+      "priority": 4
+    },
+    {
+      "name": "Lighting - Compact fluorescent lamp (CFL) #1",
+      "catalogue": "Lighting - Compact fluorescent lamp (CFL)",
+      "type": "variable",
+      "watts": 15.0,
+      "quantity": 3,
+      "max_hours": 4.0,
+      "min_hours": 2.0,
+      "days_per_week": 7.0,
+      "priority": 5
+    },
+    {
+      "name": "Electric fan #1",
+      "catalogue": "Electric fan",
+      "type": "variable",
+      "watts": 80.0,
+      "quantity": 1,
+      "max_hours": 4.0,
+      "min_hours": 0.0,
+      "days_per_week": 7.0,
+      "priority": 6
+    },
+    {
+      "name": "Electric fan #2",
+      "catalogue": "Electric fan",
+      "type": "variable",
+      "watts": 80.0,
+      "quantity": 1,
+      "max_hours": 5.0,
+      "min_hours": 0.0,
+      "days_per_week": 7.0,
+      "priority": 7
+    },
+    {
+      "name": "Electric flat iron",
+      "catalogue": "Electric flat iron",
+      "type": "variable",
+      "watts": 600.0,
+      "quantity": 1,
+      "max_hours": 1.0,
+      "min_hours": 0.0,
+      "days_per_week": 1.0,
+      "priority": 8
+    },
+    {
+      "name": "Washing machine, manual",
+      "catalogue": "Washing machine, manual",
+      "type": "variable",
+      "watts": 280.0,
+      "quantity": 1,
+      "max_hours": 2.0,
+      "min_hours": 0.0,
+      "days_per_week": 1.0,
+      "priority": 9
+    },
+    {
+      "name": "Color TV - CRT screen #1",
+      "catalogue": "Color TV - CRT screen",
+      "type": "variable",
+      "watts": 110.0,
+      "quantity": 1,
+      "max_hours": 4.0,
+      "min_hours": 0.0,
+      "days_per_week": 7.0,
+      "priority": 10
+    },
+    {
+      "name": "Color TV - CRT screen #2",
+      "catalogue": "Color TV - CRT screen",
+      "type": "variable",
+      "watts": 80.0,
+      "quantity": 1,
+      "max_hours": 2.0,
+      "min_hours": 0.0,
+      "days_per_week": 7.0,
+      "priority": 11
+    },
+    {
+      "name": "Oven toaster",
+      "catalogue": "Oven toaster",
+      "type": "variable",
+      "watts": 750.0,
+      "quantity": 1,
+      "max_hours": 0.1,
+      "min_hours": 0.0,
+      "days_per_week": 1.0,
+      "priority": 12
+    },
+    {
+      "name": "VHS/Betamax/laser disc (video casette recorder/player & rewinder)",
+      "catalogue": "VHS/Betamax/laser disc (video casette recorder/player & rewinder)",
+      "type": "variable",
+      "watts": 20.0,
+      "quantity": 1,
+      "max_hours": 2.0,
+      "min_hours": 0.0,
+      "days_per_week": 1.0,
+      "priority": 13
+    },
+    {
+      "name": "Others (miscellaneous)",
+      "catalogue": "Others (miscellaneous)",
+      "type": "variable",
+      "watts": 2.0,
+      "quantity": 2,
+      "max_hours": 2.0,
+      "min_hours": 0.0,
+      "days_per_week": 7.0,
+      "priority": 14
+    }
+  ],
+  "reported_kwh": 150.0,
+  "reported_bill_2011": 1700.0
+}

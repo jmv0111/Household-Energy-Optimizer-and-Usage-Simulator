@@ -1,0 +1,53 @@
+name,kind,hecs_code,category,households,ownership_pct,median_watts,median_quantity,median_hours_per_day,median_days_per_week,median_monthly_kwh
+Electric fan,appliance,53,variable,3572,96.7,80.0,1.0,7.0,7.0,16.2
+Lighting - Compact fluorescent lamp (CFL),lighting,4,variable,3237,87.6,15.0,1.0,3.0,7.0,1.2
+Color TV - CRT screen,appliance,37,variable,3088,83.6,110.0,1.0,5.0,7.0,15.75
+Others (miscellaneous),appliance,79,variable,2894,78.3,2.0,1.0,2.0,3.0,0.06
+Electric flat iron,appliance,60,variable,2810,76.1,600.0,1.0,1.0,1.0,5.09
+Lighting - Linear fluorescent tube,lighting,2,variable,2363,64.0,20.0,1.0,4.0,7.0,3.6
+"Washing machine, manual",appliance,61,variable,1866,50.5,280.0,1.0,2.0,1.0,3.61
+"Refrigerator, ordinary",appliance,21,fixed,1740,47.1,95.0,1.0,24.0,7.0,68.4
+VHS/Betamax/laser disc (video casette recorder/player & rewinder),appliance,38,variable,1183,32.0,20.0,1.0,2.0,1.1,0.34
+Rice cooker,appliance,2,variable,1057,28.6,650.0,1.0,1.0,7.0,13.5
+Stereo (component/mini-component/CD),appliance,32,variable,1029,27.9,380.0,1.0,2.0,2.0,4.89
+"Airconditioner, window type",appliance,50,variable,630,17.1,910.0,1.0,5.0,7.0,105.75
+Color TV - LCD screen,appliance,34,variable,530,14.3,80.0,1.0,5.0,7.0,12.0
+Lighting - Incandescent bulb,lighting,1,variable,467,12.6,25.0,1.0,3.0,7.0,1.8
+"Personal computer, LCD monitor",appliance,68,variable,455,12.3,225.0,1.0,3.0,7.0,13.5
+Lighting - Circular fluorescent lamp,lighting,3,variable,418,11.3,32.0,1.0,4.0,7.0,2.88
+"Washing machine, automatic",appliance,62,variable,352,9.5,585.0,1.0,3.0,1.0,9.92
+"Personal computer, CRT monitor",appliance,67,variable,338,9.1,225.0,1.0,3.0,5.0,13.5
+"Refrigerator, frost-free",appliance,22,fixed,334,9.0,140.0,1.0,24.0,7.0,100.8
+Radio,appliance,30,variable,319,8.6,50.0,1.0,2.0,5.0,1.8
+Microwave oven,appliance,6,variable,222,6.0,1000.0,1.0,0.5,2.0,4.24
+Tape recorder (casette),appliance,31,variable,221,6.0,50.0,1.0,2.0,5.0,1.5
+Oven toaster,appliance,5,variable,176,4.8,750.0,1.0,0.5,1.3,2.92
+Water pump,appliance,63,variable,155,4.2,373.0,1.0,8.0,7.0,89.76
+Blender,appliance,7,variable,128,3.5,300.0,1.0,0.5,0.5,0.29
+Computer printer,appliance,69,variable,126,3.4,175.0,1.0,1.0,2.0,0.76
+Electric thermos/Airpot,appliance,12,variable,105,2.8,750.0,1.0,1.0,7.0,12.67
+Karaoke/Videoke,appliance,39,variable,104,2.8,180.0,1.0,2.0,2.0,3.09
+Color TV - Plasma screen,appliance,36,variable,91,2.5,110.0,1.0,5.5,7.0,19.2
+Exhaust fan,appliance,54,variable,81,2.2,92.0,1.0,2.0,7.0,5.52
+Bread toaster (2-way/4-way),appliance,4,variable,71,1.9,800.0,1.0,0.25,2.0,2.58
+Color TV - LED screen,appliance,35,variable,68,1.8,50.0,1.0,5.0,7.0,9.0
+Water heater,appliance,13,variable,63,1.7,1600.0,1.0,1.0,7.0,24.0
+Turbo broiler,appliance,3,variable,57,1.5,1000.0,1.0,1.0,0.2,1.47
+Lighting - Other lamp,lighting,9,variable,52,1.4,5.0,1.0,5.0,7.0,1.35
+Hair dryer,appliance,66,variable,52,1.4,320.0,1.0,0.5,3.0,2.06
+Others (entertainment),appliance,49,variable,44,1.2,100.0,1.0,2.0,1.0,1.53
+Electric stove,appliance,0,variable,42,1.1,1500.0,1.0,1.0,1.6,12.94
+"Airconditioner, split type (non-inverter)",appliance,51,variable,41,1.1,910.0,1.0,5.0,7.0,148.8
+Others (heating),appliance,19,variable,40,1.1,550.0,1.0,8.0,7.0,81.03
+Coffeemaker,appliance,9,variable,33,0.9,600.0,1.0,0.41500000000000004,7.0,4.05
+Portable Heating,appliance,11,variable,32,0.9,1600.0,1.0,0.33,7.0,13.2
+"Airconditioner, split type (inverter)",appliance,52,variable,24,0.6,910.0,1.0,5.0,7.0,84.6
+Lighting - LED bulb,lighting,5,variable,24,0.6,5.0,1.0,5.0,7.0,1.2
+Others (kitchen),appliance,10,variable,21,0.6,700.0,1.0,0.5,1.0,2.97
+Rechargeable lamp,appliance,70,variable,20,0.5,12.0,1.0,3.0,0.2,0.05
+Electric sewing machine,appliance,64,variable,17,0.5,75.0,1.0,3.0,2.5,2.42
+Video games,appliance,40,variable,17,0.5,20.0,1.0,2.0,2.0,0.52
+B/W TV,appliance,33,variable,14,0.4,36.0,1.0,5.0,7.0,6.6
+Freezer,appliance,23,fixed,12,0.3,160.0,1.0,24.0,7.0,109.8
+Mixer,appliance,8,variable,11,0.3,350.0,1.0,0.5,1.0,0.71
+Shaver,appliance,65,variable,10,0.3,40.0,1.0,0.375,3.0,0.13

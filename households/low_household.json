@@ -1,0 +1,96 @@
+{
+  "name": "Low-consumption Metro Manila household",
+  "source": "HECS 2011 QID 760514500300048024",
+  "appliances": [
+    {
+      "name": "Lighting - Linear fluorescent tube",
+      "catalogue": "Lighting - Linear fluorescent tube",
+      "type": "variable",
+      "watts": 20.0,
+      "quantity": 1,
+      "max_hours": 5.0,
+      "min_hours": 2.0,
+      "days_per_week": 7.0,
+      "priority": 1
+    },
+    {
+      "name": "Electric fan #1",
+      "catalogue": "Electric fan",
+      "type": "variable",
+      "watts": 60.0,
+      "quantity": 2,
+      "max_hours": 8.0,
+      "min_hours": 0.0,
+      "days_per_week": 7.0,
+      "priority": 2
+    },
+    {
+      "name": "Electric fan #2",
+      "catalogue": "Electric fan",
+      "type": "variable",
+      "watts": 60.0,
+      "quantity": 1,
+      "max_hours": 10.0,
+      "min_hours": 0.0,
+      "days_per_week": 7.0,
+      "priority": 3
+    },
+    {
+      "name": "Electric flat iron",
+      "catalogue": "Electric flat iron",
+      "type": "variable",
+      "watts": 600.0,
+      "quantity": 1,
+      "max_hours": 0.5,
+      "min_hours": 0.0,
+      "days_per_week": 1.0,
+      "priority": 4
+    },
+    {
+      "name": "Washing machine, manual",
+      "catalogue": "Washing machine, manual",
+      "type": "variable",
+      "watts": 280.0,
+      "quantity": 1,
+      "max_hours": 0.5,
+      "min_hours": 0.0,
+      "days_per_week": 1.0,
+      "priority": 5
+    },
+    {
+      "name": "Color TV - CRT screen",
+      "catalogue": "Color TV - CRT screen",
+      "type": "variable",
+      "watts": 110.0,
+      "quantity": 1,
+      "max_hours": 7.5,
+      "min_hours": 0.0,
+      "days_per_week": 7.0,
+      "priority": 6
+    },
+    {
+      "name": "Personal computer, LCD monitor",
+      "catalogue": "Personal computer, LCD monitor",
+      "type": "variable",
+      "watts": 225.0,
+      "quantity": 1,
+      "max_hours": 0.75,
+      "min_hours": 0.0,
+      "days_per_week": 7.0,
+      "priority": 7
+    },
+    {
+      "name": "Others (miscellaneous)",
+      "catalogue": "Others (miscellaneous)",
+      "type": "variable",
+      "watts": 2.0,
+      "quantity": 1,
+      "max_hours": 2.0,
+      "min_hours": 0.0,
+      "days_per_week": 1.0,
+      "priority": 8
+    }
+  ],
+  "reported_kwh": 84.0,
+  "reported_bill_2011": 700.0
+}
