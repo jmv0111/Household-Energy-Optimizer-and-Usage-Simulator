@@ -1,0 +1,22 @@
+priority,appliance,type,when,hours_per_use_day,avg_hours_per_day,monthly_hours,monthly_kwh,time_of_day,status
+-,"Refrigerator, ordinary",fixed,daily,24.0,24.0,720.0,68.4,00:00-24:00,always on
+1,Lighting - Incandescent bulb #1,variable,daily,9.0,9.0,270.0,6.75,04:00-07:00; 18:00-00:00,full
+2,Lighting - Compact fluorescent lamp (CFL) #1,variable,daily,5.0,5.0,150.0,3.0,05:00-06:00; 18:00-22:00,full
+3,Lighting - Compact fluorescent lamp (CFL) #2,variable,daily,4.0,4.0,120.0,2.4,18:00-22:00,full
+4,Lighting - Compact fluorescent lamp (CFL) #3,variable,daily,2.0,2.0,60.0,1.2,19:00-21:00,full
+5,Lighting - Compact fluorescent lamp (CFL) #4,variable,daily,2.0,2.0,60.0,0.9,19:00-21:00,full
+6,Lighting - Compact fluorescent lamp (CFL) #5,variable,daily,4.0,4.0,120.0,1.8,18:00-22:00,full
+7,Lighting - Incandescent bulb #2,variable,daily,2.0,2.0,60.0,0.6,19:00-21:00,full
+8,Electric fan #1,variable,daily,9.0,9.0,270.0,43.2,19:00-04:00,full
+9,Electric fan #2,variable,daily,8.0,8.0,240.0,19.2,20:00-04:00,full
+10,Rice cooker,variable,daily,2.0,2.0,60.0,27.0,10:00-12:00,full
+11,Electric flat iron,variable,Sat,2.0,0.29,8.6,5.14,14:00-16:00,full
+12,"Washing machine, manual",variable,Wed/Sat,3.0,0.86,25.7,7.2,07:00-10:00,full
+13,Color TV - CRT screen,variable,daily,4.0,4.0,120.0,13.2,18:00-22:00,full
+14,"Personal computer, LCD monitor",variable,Mon/Wed/Sat,2.0,0.86,25.7,5.79,19:00-21:00,full
+15,"Airconditioner, window type",variable,daily,1.0,1.0,30.0,55.8,22:00-23:00,reduced
+16,Others (miscellaneous),variable,daily,2.0,2.0,60.0,0.12,19:00-21:00,full
+
+total_kwh,261.7
+bill_php,3925.02
+budget_php,4000.0

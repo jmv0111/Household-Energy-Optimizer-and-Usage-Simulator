@@ -122,13 +122,23 @@ def interactive():
     print()
     budget = ask("Monthly electricity budget (PHP)", float, check=lambda v: v >= 0)
     appliances, names = [], set()
+    pending_picks = []
     while True:
-        pick = input("\nAppliance number/name (Enter to finish): ").strip()
-        if not pick:
-            if appliances:
-                break
-            print("  Add at least one appliance.")
-            continue
+        if pending_picks:
+            pick = pending_picks.pop(0)
+            print(f"\nAppliance number/name: {pick}")
+        else:
+            pick = input("\nAppliance number/name (Enter to finish): ").strip()
+            if not pick:
+                if appliances:
+                    break
+                print("  Add at least one appliance.")
+                continue
+            tokens = [t.strip() for t in pick.replace(",", " ").split() if t.strip()]
+            if len(tokens) > 1 and all(t.isdigit() for t in tokens):
+                pick = tokens[0]
+                pending_picks = tokens[1:]
+
         ref = cat[int(pick) - 1] if pick.isdigit() and 1 <= int(pick) <= len(cat) else None
         name = ref["name"] if ref else pick
         base, k = name, 2
@@ -188,7 +198,13 @@ def main(argv=None):
     p.add_argument("--lft", type=float, default=0.0, help="local franchise tax PHP/kWh")
     p.add_argument("--csv", help="also save the schedule to this CSV file")
     p.add_argument("--interactive", action="store_true")
+    p.add_argument("--gui", "--ui", action="store_true", help="launch desktop GUI window")
     a = p.parse_args(argv)
+
+    if a.gui:
+        from gui import main as run_desktop_gui
+        run_desktop_gui()
+        return 0
 
     if a.interactive:
         household, budget = interactive()
