@@ -93,12 +93,40 @@ class TariffAgainstSchedule(unittest.TestCase):
         self.assertAlmostEqual(disc, -base)
 
     def test_senior_discount_is_five_percent(self):
-        plain = compute_bill(150)
-        sc = compute_bill(150, BillOptions(senior_citizen=True))
+        plain = compute_bill(90)
+        sc = compute_bill(90, BillOptions(senior_citizen=True))
         base = sum(plain.lines[k] for k in ("Generation", "Transmission", "Ancillary Service",
                                             "System Loss", "Distribution", "Supply", "Metering"))
         self.assertAlmostEqual(sc.lines["Senior Citizen Discount"], -0.05 * base)
         self.assertLess(sc.total, plain.total)
+
+    def test_discounts_stop_above_100_kwh(self):
+        # RA 9994 (senior) and RA 11552 (lifeline) both stop at 100 kWh/month;
+        # above that the customer is billed like everyone else.
+        for opts in (BillOptions(senior_citizen=True), BillOptions(lifeline=True)):
+            with self.subTest(opts=opts):
+                self.assertAlmostEqual(compute_bill(150, opts).total, compute_bill(150).total)
+                self.assertLess(compute_bill(100, opts).total, compute_bill(100).total)
+
+    def test_budget_inversion_with_discounts(self):
+        # With a 100% lifeline discount (0-50 kWh) only the per-kWh refunds
+        # and pass-through charges remain, so the bill dips slightly below
+        # zero there. The bisection still needs every kWh up to the cap to be
+        # affordable and the next step above it not to be.
+        for opts in (BillOptions(lifeline=True), BillOptions(senior_citizen=True),
+                     BillOptions(lifeline=True, senior_citizen=True, lft_per_kwh=0.05)):
+            for budget in (30, 400, 1200, 1500, 3000):
+                with self.subTest(opts=opts, budget=budget):
+                    k = max_kwh_for_budget(budget, opts)
+                    grid = [k * i / 400 for i in range(401)]
+                    self.assertTrue(all(compute_bill(e, opts).total <= budget + 1e-6
+                                        for e in grid))
+                    self.assertGreater(compute_bill(k + 0.01, opts).total, budget)
+            prev = -1e9   # above the 50-kWh full-discount tier it never decreases
+            for i in range(201, 4001):
+                total = compute_bill(i / 4, opts).total
+                self.assertGreaterEqual(total, prev - 1e-9)
+                prev = total
 
     def test_negative_kwh_rejected(self):
         with self.assertRaises(ValueError):

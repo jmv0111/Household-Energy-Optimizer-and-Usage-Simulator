@@ -239,6 +239,10 @@ def optimize(household, budget, mode=STRICT, options=None, days_in_month=30,
         raise ValueError(f"unknown mode {mode!r}; use 'strict' or 'weighted'")
     if budget < 0:
         raise ValueError("budget cannot be negative")
+    if days_in_month <= 0:
+        raise ValueError("days in the billing month must be at least 1")
+    if step is not None and step <= 0:
+        raise ValueError("rounding step must be positive (or None for no rounding)")
 
     fixed = household.fixed
     variables = household.variable

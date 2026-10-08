@@ -14,7 +14,8 @@ import json
 import sys
 from pathlib import Path
 
-from appliances import FIXED, VARIABLE, household_from_dict, load_catalogue, load_household
+from appliances import (FIXED, VARIABLE, find_in_catalogue, household_from_dict,
+                        load_catalogue, load_household)
 from meralco_rates import BillOptions, compute_bill
 from optimizer import STRICT, WEIGHTED, optimize
 from schedule import daily_schedule
@@ -40,9 +41,13 @@ def render(plan):
                f"= {plan.kwh_cap / D:,.2f} kWh/day")
     out.append(f"Recommended usage    : {plan.total_kwh:,.2f} kWh/month "
                f"= {plan.total_kwh / D:,.2f} kWh/day")
-    out.append(f"Expected bill        : PHP {plan.cost:,.2f}  "
-               f"(unused budget PHP {plan.unused_budget:,.2f}, "
-               f"about PHP {plan.cost / D:,.2f}/day)")
+    if plan.feasible:
+        out.append(f"Expected bill        : PHP {plan.cost:,.2f}  "
+                   f"(unused budget PHP {plan.unused_budget:,.2f}, "
+                   f"about PHP {plan.cost / D:,.2f}/day)")
+    else:
+        out.append(f"Always-on load alone : PHP {plan.cost:,.2f}  "
+                   f"(PHP {-plan.unused_budget:,.2f} over budget)")
     out.append(f"Comfort delivered    : {plan.comfort_score():.1f}% of desired "
                "variable-appliance hours")
     out.append(f"Status               : {'FEASIBLE' if plan.feasible else 'INFEASIBLE'}")
@@ -115,7 +120,7 @@ def ask(prompt, cast=str, default=None, check=None):
 def interactive():
     print("Household Energy Optimizer - interactive mode")
     print("Enter appliances one at a time. Pick a number from the list or type a name.\n")
-    cat = list(load_catalogue().values())[:30]
+    cat = list(load_catalogue().values())
     for i, row in enumerate(cat, 1):
         print(f"  {i:>2}. {row['name'][:45]:<45} {float(row['median_watts']):>6.0f} W  "
               f"(typical {float(row['median_hours_per_day']):g} h/day)")
@@ -128,19 +133,30 @@ def interactive():
             pick = pending_picks.pop(0)
             print(f"\nAppliance number/name: {pick}")
         else:
-            pick = input("\nAppliance number/name (Enter to finish): ").strip()
+            pick = input("\nAppliance number/name (Enter to finish; "
+                         "several numbers like 1,3,5 also work): ").strip()
             if not pick:
                 if appliances:
                     break
                 print("  Add at least one appliance.")
                 continue
             tokens = [t.strip() for t in pick.replace(",", " ").split() if t.strip()]
-            if len(tokens) > 1 and all(t.isdigit() for t in tokens):
-                pick = tokens[0]
-                pending_picks = tokens[1:]
+            if tokens and all(t.isdigit() for t in tokens):
+                pick, pending_picks = tokens[0], tokens[1:]
 
-        ref = cat[int(pick) - 1] if pick.isdigit() and 1 <= int(pick) <= len(cat) else None
-        name = ref["name"] if ref else pick
+        if pick.isdigit():
+            if not 1 <= int(pick) <= len(cat):
+                print(f"  {pick} is not on the list (1-{len(cat)}).")
+                continue
+            ref = cat[int(pick) - 1]
+            name = ref["name"]
+        else:
+            # A typed name keeps the user's wording but borrows typical
+            # wattage/hours from the closest catalogue item, if any.
+            ref = find_in_catalogue(pick)
+            name = pick
+            if ref:
+                print(f"  (defaults from catalogue: {ref['name']})")
         base, k = name, 2
         while name in names:
             name, k = f"{base} #{k}", k + 1
@@ -169,10 +185,13 @@ def interactive():
     data = {"name": "My household", "appliances": appliances}
     save = input("\nSave this household to a file? (path or Enter to skip): ").strip()
     if save:
-        Path(save).parent.mkdir(parents=True, exist_ok=True)
-        with open(save, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-        print(f"Saved {save}")
+        try:
+            Path(save).parent.mkdir(parents=True, exist_ok=True)
+            with open(save, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            print(f"Saved {save}")
+        except OSError as e:
+            print(f"  Could not save ({e}); continuing without saving.")
     return household_from_dict(data), budget
 
 
@@ -193,8 +212,10 @@ def main(argv=None):
     p.add_argument("--days", type=int, default=30, help="days in the billing month")
     p.add_argument("--step", type=float, default=0.25,
                    help="hour rounding step (0 = no rounding)")
-    p.add_argument("--lifeline", action="store_true", help="registered lifeline customer")
-    p.add_argument("--senior", action="store_true", help="senior citizen discount")
+    p.add_argument("--lifeline", action="store_true",
+                   help="registered lifeline customer (discount only up to 100 kWh)")
+    p.add_argument("--senior", action="store_true",
+                   help="senior citizen 5%% discount (only up to 100 kWh)")
     p.add_argument("--lft", type=float, default=0.0, help="local franchise tax PHP/kWh")
     p.add_argument("--csv", help="also save the schedule to this CSV file")
     p.add_argument("--interactive", action="store_true")
@@ -207,19 +228,37 @@ def main(argv=None):
         return 0
 
     if a.interactive:
-        household, budget = interactive()
+        try:
+            household, budget = interactive()
+        except (KeyboardInterrupt, EOFError):
+            print("\nCancelled.")
+            return 2
     else:
         if a.budget is None:
             p.error("--budget is required (or use --interactive)")
-        household, budget = load_household(resolve_household(a.household)), a.budget
+        path = resolve_household(a.household)
+        try:
+            household, budget = load_household(path), a.budget
+        except FileNotFoundError:
+            p.error(f"household file not found: {path} "
+                    f"(presets: {', '.join(PRESETS)})")
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
+            p.error(f"could not read household file {path}: {e}")
 
     opts = BillOptions(lifeline=a.lifeline, senior_citizen=a.senior, lft_per_kwh=a.lft)
-    plan = optimize(household, budget, mode=a.mode, options=opts,
-                    days_in_month=a.days, step=a.step or None)
+    try:
+        plan = optimize(household, budget, mode=a.mode, options=opts,
+                        days_in_month=a.days, step=a.step or None)
+    except ValueError as e:
+        p.error(str(e))
     print(render(plan))
     if a.csv:
-        write_csv(plan, a.csv)
-        print(f"Schedule saved to {a.csv}")
+        try:
+            write_csv(plan, a.csv)
+            print(f"Schedule saved to {a.csv}")
+        except OSError as e:
+            print(f"Could not save the CSV ({e}). Is the file open in Excel?",
+                  file=sys.stderr)
     return 0 if plan.feasible else 1
 
 

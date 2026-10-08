@@ -10,6 +10,14 @@ The full write-up is in [report/Research_Report.md](report/Research_Report.md).
 
 ## Get a schedule
 
+**Desktop window (easiest):**
+
+    python gui.py                         # or: python main.py --gui
+
+Pick a household, set the budget and press **Calculate**. The tabs show the schedule, the appliance list (add, edit, delete, reorder priorities), the Meralco bill, charts and a budget simulator.
+
+**Command line:**
+
     python main.py --household median --budget 2000
     python main.py --household high --budget 4000 --csv my_plan.csv
     python main.py --household custom --budget 3000 --mode weighted
@@ -24,7 +32,7 @@ Options:
 | `--mode weighted` | Maximizes priority-weighted comfort. |
 | `--days` | Days in the billing month (default 30). |
 | `--step` | Rounding step in hours (default 0.25; 0 = no rounding). |
-| `--lifeline`, `--senior`, `--lft` | Lifeline customer, senior-citizen discount, and local franchise tax in PHP/kWh. |
+| `--lifeline`, `--senior`, `--lft` | Lifeline customer, senior-citizen discount (both only apply up to 100 kWh a month), and local franchise tax in PHP/kWh. |
 
 Household JSON format: see [households/custom_example.json](households/custom_example.json) and Appendix B of the report.
 
@@ -33,7 +41,7 @@ Household JSON format: see [households/custom_example.json](households/custom_ex
 | Command | Methodology step | Output |
 |---|---|---|
 | `python hecs_data.py` | 2: Collect data | `data/`, `households/` from the HECS 2011 files in `Datasets/` |
-| `python -m unittest discover -s tests -t .` | 5: Verify | 24 automated tests |
+| `python -m unittest discover -s tests -t .` | 5: Verify | 27 automated tests |
 | `python validate.py` | 5: Validate | `results/validation_report.md` |
 | `python scenarios.py` | 6: Analyze | `results/scenarios.csv`, `scenario_summary.md`, `fig*.png` |
 
@@ -46,6 +54,7 @@ Household JSON format: see [households/custom_example.json](households/custom_ex
 | `optimizer.py` | The optimization model: a linear program (see its docstring) |
 | `schedule.py` | Turns the optimal hours into clock-time blocks |
 | `main.py` | Command-line tool |
+| `gui.py` | Desktop window (Tkinter + matplotlib) |
 | `hecs_data.py` | Builds the appliance catalogue and sample households from HECS 2011 |
 | `lp_reference.py` | scipy LP solver, used only to verify optimality |
 | `validate.py`, `scenarios.py`, `tests/` | Validation and analysis |

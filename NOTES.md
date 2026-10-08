@@ -113,9 +113,10 @@ kWh per month = watts × quantity × hours per day × days used ÷ 1000
 | [`appliances.py`](appliances.py) | Describes appliances and households |
 | [`optimizer.py`](optimizer.py) | The brain: the optimization model |
 | [`schedule.py`](schedule.py) | Turns hours into clock times |
-| [`main.py`](main.py) | The program you run |
+| [`main.py`](main.py) | The program you run (command line) |
+| [`gui.py`](gui.py) | The program you run (desktop window) |
 | [`lp_reference.py`](lp_reference.py) | Checking tool (scipy LP solver) |
-| [`tests/`](tests/) | 24 automated tests |
+| [`tests/`](tests/) | 27 automated tests |
 | [`validate.py`](validate.py) | Methodology Step 5: Verify and Validate |
 | [`scenarios.py`](scenarios.py) | Methodology Step 6: Analyze Results |
 | [`report/Research_Report.md`](report/Research_Report.md) | The written research report |
@@ -125,7 +126,7 @@ kWh per month = watts × quantity × hours per day × days used ÷ 1000
 
 - `compute_bill(kwh)` returns the exact Meralco bill, itemized.
 - `max_kwh_for_budget(budget)` works backwards: the most kWh you can use without going over the budget. It searches by repeatedly halving the range (bisection), because the bill only goes up as kWh goes up.
-- Lifeline discount, senior-citizen discount and local franchise tax are optional.
+- Lifeline discount, senior-citizen discount and local franchise tax are optional. The lifeline and senior discounts only apply when the month's use is 100 kWh or less (RA 11552 and RA 9994); above that the household pays the normal bill.
 
 ### `hecs_data.py`: data preparation (run once)
 
@@ -170,7 +171,14 @@ It prints the header (budget, kWh limit, expected bill, comfort %), the daily sc
 
 Solves the same problem with scipy's general LP solver. It's used only to prove our optimizer gives the best possible answer.
 
-### `tests/`: 24 automated tests
+### `gui.py`: the desktop window
+
+- Run with `python gui.py` (or `python main.py --gui`).
+- Left side: choose a household, set the budget and options, press **Calculate**.
+- Tabs: recommended schedule (export to CSV), appliance inventory (add from catalogue, add custom, edit, delete, move priority up/down), Meralco bill details, power charts, and a budget simulator (bill and comfort from ₱1,000 to ₱10,000).
+- Every change is checked before it is accepted, so an invalid entry shows an error instead of breaking the household.
+
+### `tests/`: 27 automated tests
 
 - The bill matches a hand calculation from the Meralco PDF.
 - The budget is never exceeded, across thousands of random households.
@@ -288,9 +296,10 @@ Additional:
 ```bash
 pip install -r requirements.txt
 
+python gui.py                                     # desktop window
 python main.py --household median --budget 2000   # get a schedule
 python main.py --interactive                      # enter your own appliances
-python -m unittest discover -s tests -t .         # run the 24 tests
+python -m unittest discover -s tests -t .         # run the 27 tests
 python validate.py                                # validation report
 python scenarios.py                               # analysis data and charts
 ```

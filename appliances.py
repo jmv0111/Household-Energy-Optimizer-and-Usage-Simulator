@@ -96,7 +96,11 @@ def find_in_catalogue(name):
 
 def from_dict(d):
     """Build an Appliance, filling missing watts/hours from the catalogue."""
-    ref = find_in_catalogue(d.get("catalogue") or d["name"])
+    name = str(d.get("name") or "").strip()
+    if not name:
+        raise ValueError("every appliance needs a name")
+    d = {**d, "name": name}
+    ref = find_in_catalogue(d.get("catalogue") or name)
     kind = d.get("type") or (ref["category"] if ref else VARIABLE)
 
     def pick(key, ref_key, default):
@@ -122,6 +126,16 @@ def from_dict(d):
     )
     app.validate()
     return app
+
+
+def to_dict(app):
+    """Inverse of from_dict: every field the optimizer uses, filled in."""
+    d = {"name": app.name, "catalogue": app.catalogue, "type": app.type,
+         "watts": app.watts, "quantity": app.quantity}
+    if not app.is_fixed:
+        d.update(priority=app.priority, min_hours=app.min_hours,
+                 max_hours=app.max_hours, days_per_week=app.days_per_week)
+    return d
 
 
 def assign_priorities(appliances):

@@ -123,6 +123,23 @@ class EdgeCases(unittest.TestCase):
             optimize(profile("low"), 1000, mode="greedy")
         with self.assertRaises(ValueError):
             Appliance("x", "variable", 10, min_hours=5, max_hours=2).validate()
+        with self.assertRaises(ValueError):
+            optimize(profile("low"), 1000, days_in_month=0)
+        with self.assertRaises(ValueError):
+            optimize(profile("low"), 1000, step=-0.25)
+
+    def test_cli_reports_bad_input_without_traceback(self):
+        import contextlib
+        import io
+
+        from main import main
+        bad = [["--budget", "-5"], ["--household", "nope.json", "--budget", "2000"],
+               ["--budget", "2000", "--days", "0"]]
+        for argv in bad:
+            with self.subTest(argv=argv), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as cm:
+                    main(argv)
+                self.assertEqual(cm.exception.code, 2)   # argparse usage error
 
 
 class PriorityBehaviour(unittest.TestCase):

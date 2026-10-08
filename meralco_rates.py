@@ -15,12 +15,16 @@ Assumptions (see README / report, change here if the panel says otherwise):
   * Energy tax (BP 36) IS incremental: first 650 kWh free, next 350 at 0.10,
     next 500 at 0.20, excess at 0.35.
   * Lifeline discount only applies to registered lifeline customers
-    (RA 11552 / ERC Res. 02-2026), so it is OFF by default. When on, the
+    (RA 11552 / ERC Res. 02-2026), so it is OFF by default. When on and the
+    month's consumption is within the 100 kWh lifeline threshold, the
     discount % is applied to generation, transmission, ancillary service,
     system loss, distribution, supply and metering charges, and the customer
-    no longer pays the lifeline subsidy.
-  * Senior citizen discount (5%) is OFF by default and, when on, is applied
-    to the charges listed in footnote 22.
+    no longer pays the lifeline subsidy. Above 100 kWh the customer is billed
+    like a non-lifeline customer.
+  * Senior citizen discount (5%) is OFF by default. When on, it is applied
+    to the charges listed in footnote 22, but only if the month's
+    consumption does not exceed 100 kWh (RA 9994, Sec. 4). Above that the
+    customer pays the senior citizen subsidy like everyone else.
   * Local franchise tax (LFT) varies per LGU, so it is a parameter (default 0).
   * TOU GCA only applies to Time-of-Use customers and is not modelled.
 """
@@ -92,6 +96,7 @@ VAT_SYSTEM_LOSS = 0.0938
 VAT_OTHER = 0.12
 
 SENIOR_CITIZEN_DISCOUNT = 0.05
+SENIOR_CITIZEN_MAX_KWH = 100     # RA 9994: discount only up to 100 kWh/month
 
 
 def distribution_rate(kwh):
@@ -169,16 +174,20 @@ def compute_bill(kwh, options=None):
         "Metering": metering,
     }
 
-    if opts.lifeline:
-        pct = lifeline_discount_rate(kwh)
+    # Discounts only apply within their consumption limits; above them the
+    # customer is billed (and pays the subsidies) like any other customer.
+    lifeline_pct = lifeline_discount_rate(kwh) if opts.lifeline else 0.0
+    senior = opts.senior_citizen and kwh <= SENIOR_CITIZEN_MAX_KWH
+
+    if lifeline_pct > 0:
         base = (generation + transmission + ancillary + system_loss
                 + distribution + supply + metering)
-        lines["Lifeline Discount"] = -pct * base
+        lines["Lifeline Discount"] = -lifeline_pct * base
     else:
         lines["Lifeline Subsidy"] = LIFELINE_SUBSIDY * kwh
         lines["Lifeline Rate Adj"] = LIFELINE_RATE_ADJ * kwh
 
-    if opts.senior_citizen:
+    if senior:
         base = (generation + transmission + ancillary + system_loss
                 + distribution + supply + metering)
         lines["Senior Citizen Discount"] = -SENIOR_CITIZEN_DISCOUNT * base
@@ -202,10 +211,8 @@ def compute_bill(kwh, options=None):
     lines["Energy Tax"] = energy_tax(kwh)
 
     # VAT: discounts reduce the VAT base proportionally for each component
-    keep = 1.0
-    if opts.lifeline:
-        keep -= lifeline_discount_rate(kwh)
-    if opts.senior_citizen:
+    keep = 1.0 - lifeline_pct
+    if senior:
         keep -= SENIOR_CITIZEN_DISCOUNT
     keep = max(keep, 0.0)
     other_base = ((distribution + supply + metering) * keep + awat + reg_reset

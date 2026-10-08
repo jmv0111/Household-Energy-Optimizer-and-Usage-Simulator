@@ -63,7 +63,7 @@ Consumers guess their usage and learn whether they stayed within budget only whe
 
 - The rate schedule is the Meralco *Summary Schedule of Rates, effective September 2026 billing*, residential rows.
 - Local franchise tax is 0 by default; it varies by city and can be set with `--lft`.
-- Lifeline and senior-citizen discounts are optional switches.
+- Lifeline and senior-citizen discounts are optional switches. Both apply only when the month's consumption is 100 kWh or less (RA 11552; RA 9994); above that the household is billed at the regular rate.
 - Meralco's residential rate is the same at every hour, so time of day does not change the cost. Clock times in the schedule follow typical usage hours from HECS so that the plan is realistic.
 - A billing month has 30 days by default (`--days`).
 - HECS 2011 is the most recent public survey with appliance-level wattage and usage. It reflects 2011 appliances (CRT televisions, ordinary refrigerators). A hand-entered present-day household (`custom_example.json`) shows the model with modern appliances, and users can enter their own.
@@ -197,7 +197,7 @@ The engine (`optimizer.py`, `schedule.py`, `main.py`) runs these steps:
 
 ### Step 5. Verify and validate
 
-`validate.py` writes `results/validation_report.md`. The 24 unit tests in `tests/` repeat these checks automatically.
+`validate.py` writes `results/validation_report.md`. The 27 unit tests in `tests/` repeat these checks automatically.
 
 **(a) Simulated cost vs. the official rate table.**
 
@@ -329,7 +329,7 @@ The CLI can save the schedule as a CSV file (`--csv`). It can also build a new h
 
 | Expected output | Deliverable |
 |---|---|
-| Optimization and Simulation Model | `meralco_rates.py` (tariff), `appliances.py` (inputs), `optimizer.py` (LP model), `schedule.py` (daily schedule), `main.py` (command-line tool), `hecs_data.py` (data pipeline), `validate.py` and `tests/` (verification), `scenarios.py` (analysis) |
+| Optimization and Simulation Model | `meralco_rates.py` (tariff), `appliances.py` (inputs), `optimizer.py` (LP model), `schedule.py` (daily schedule), `main.py` (command-line tool), `gui.py` (desktop window), `hecs_data.py` (data pipeline), `validate.py` and `tests/` (verification), `scenarios.py` (analysis) |
 | Research Report | This document, with `results/validation_report.md`, `results/scenario_summary.md`, `results/scenarios.csv` and the figures |
 
 ## VII. Conclusion
@@ -372,12 +372,13 @@ Virtanen, P., et al. (2020). SciPy 1.0: Fundamental algorithms for scientific co
 
     pip install -r requirements.txt
     python hecs_data.py                        # step 2: build data/ and households/ from Datasets/
-    python -m unittest discover -s tests -t .  # step 5: 24 automated tests
+    python -m unittest discover -s tests -t .  # step 5: 27 automated tests
     python validate.py                         # step 5: results/validation_report.md
     python scenarios.py                        # step 6: results/scenarios.csv, summary, figures
     python main.py --household median --budget 2000          # step 7: a schedule
     python main.py --household custom --budget 3000 --mode weighted
     python main.py --interactive                             # enter your own household
+    python gui.py                                            # desktop window
 
 ## Appendix B. Household file format
 

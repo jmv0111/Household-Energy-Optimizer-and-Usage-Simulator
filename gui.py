@@ -16,20 +16,41 @@ from pathlib import Path
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-from appliances import (FIXED, VARIABLE, Appliance, Household,
-                        household_from_dict, load_catalogue, load_household)
+from appliances import (FIXED, VARIABLE, from_dict, household_from_dict,
+                        load_catalogue, to_dict)
 from meralco_rates import BillOptions
 from optimizer import STRICT, WEIGHTED, optimize
 from schedule import daily_schedule, hourly_load_kw
 
 ROOT = Path(__file__).resolve().parent
 HOUSEHOLDS_DIR = ROOT / "households"
+# The HECS profiles are grouped by electricity consumption, not income.
+DEFAULT_PRESET = "Typical Metro Manila (Median)"
 PRESETS = {
-    "Typical Metro Manila (Median)": "median_household.json",
-    "Low Income Household": "low_household.json",
-    "High Income Household": "high_household.json",
-    "Custom Example": "custom_example.json",
+    DEFAULT_PRESET: "median_household.json",
+    "Low-consumption Household (HECS P25)": "low_household.json",
+    "High-consumption Household (HECS P90, aircon)": "high_household.json",
+    "Present-day Example (hand-entered)": "custom_example.json",
 }
+
+
+def normalized(data):
+    """Validated copy of a household dict with every field filled in (wattage,
+    hours and days from the HECS catalogue where missing), listed as fixed
+    appliances first, then variable ones in priority order. The inventory
+    table and the priority buttons rely on this order. Raises ValueError for
+    an invalid household, before it replaces the current one."""
+    hh = household_from_dict(data)
+    out = {k: v for k, v in data.items() if k != "appliances"}
+    out["appliances"] = [to_dict(a) for a in hh.fixed + hh.variable]
+    return out
+
+
+def unique_name(name, taken):
+    base, k = name, 2
+    while name in taken:
+        name, k = f"{base} #{k}", k + 1
+    return name
 
 
 class EnergyOptimizerGUI:
@@ -50,7 +71,7 @@ class EnergyOptimizerGUI:
 
         # Application state
         self.catalogue = load_catalogue()
-        self.current_household_data = self._load_preset_json(PRESETS["Typical Metro Manila (Median)"])
+        self.current_household_data = self._load_preset_json(PRESETS[DEFAULT_PRESET])
         self.current_plan = None
 
         # Build UI layout
@@ -73,7 +94,7 @@ class EnergyOptimizerGUI:
         fpath = HOUSEHOLDS_DIR / filename
         if fpath.exists():
             with open(fpath, "r", encoding="utf-8") as f:
-                return json.load(f)
+                return normalized(json.load(f))
         return {"name": "Default Household", "appliances": []}
 
     # ---------------------------------------------------------------------------
@@ -117,7 +138,7 @@ class EnergyOptimizerGUI:
         prof_frame.pack(fill=tk.X, pady=(0, 10))
 
         ttk.Label(prof_frame, text="Select Household Profile:").pack(anchor=tk.W, pady=(0, 2))
-        self.preset_var = tk.StringVar(value="Typical Metro Manila (Median)")
+        self.preset_var = tk.StringVar(value=DEFAULT_PRESET)
         preset_cb = ttk.Combobox(
             prof_frame,
             textvariable=self.preset_var,
@@ -168,10 +189,10 @@ class EnergyOptimizerGUI:
         ttk.Spinbox(adv_frame, from_=1, to=31, textvariable=self.days_var).pack(fill=tk.X, pady=(0, 6))
 
         self.lifeline_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(adv_frame, text="Lifeline Discount", variable=self.lifeline_var).pack(anchor=tk.W, pady=1)
+        ttk.Checkbutton(adv_frame, text="Lifeline Customer (up to 100 kWh)", variable=self.lifeline_var).pack(anchor=tk.W, pady=1)
 
         self.senior_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(adv_frame, text="Senior Citizen Discount (5%)", variable=self.senior_var).pack(anchor=tk.W, pady=1)
+        ttk.Checkbutton(adv_frame, text="Senior Citizen 5% (up to 100 kWh)", variable=self.senior_var).pack(anchor=tk.W, pady=1)
 
         ttk.Label(adv_frame, text="Local Franchise Tax (₱/kWh):").pack(anchor=tk.W, pady=(4, 2))
         self.lft_var = tk.DoubleVar(value=0.0)
@@ -219,7 +240,7 @@ class EnergyOptimizerGUI:
         self.progress_comf.pack(fill=tk.X, pady=(2, 0))
 
         # Advice & Message Box
-        self.msg_box = tk.Text(parent, height=2, wrap=tk.WORD, font=("Segoe UI", 9), bg="#f8fafc", fg="#334155", relief=tk.SOLID, bd=1)
+        self.msg_box = tk.Text(parent, height=5, wrap=tk.WORD, font=("Segoe UI", 9), bg="#f8fafc", fg="#334155", relief=tk.SOLID, bd=1)
         self.msg_box.pack(fill=tk.X, pady=(0, 10))
 
         # Tabs Notebook
@@ -359,6 +380,9 @@ class EnergyOptimizerGUI:
 
         self.fig_sim = Figure(figsize=(8, 5), dpi=100)
         self.ax_sim_bill = self.fig_sim.add_subplot(111)
+        # Created once and cleared on each run; calling twinx() on every
+        # click would stack a new axis on top of the old ones.
+        self.ax_sim_comf = self.ax_sim_bill.twinx()
 
         self.canvas_sim = FigureCanvasTkAgg(self.fig_sim, master=self.tab_sim)
         self.canvas_sim.get_tk_widget().pack(fill=tk.BOTH, expand=True)
@@ -394,10 +418,13 @@ class EnergyOptimizerGUI:
             self.lbl_feas_sub.config(text="Budget covers energy")
         else:
             self.lbl_feas_val.config(text="INFEASIBLE", foreground="#ef4444")
-            self.lbl_feas_sub.config(text="Budget covers essentials")
+            self.lbl_feas_sub.config(text="Budget below always-on cost")
 
         self.lbl_bill_val.config(text=f"₱{plan.cost:,.2f}")
-        self.lbl_bill_sub.config(text=f"Unused Budget: ₱{max(0, plan.unused_budget):,.2f}")
+        if plan.feasible:
+            self.lbl_bill_sub.config(text=f"Unused Budget: ₱{plan.unused_budget:,.2f}")
+        else:
+            self.lbl_bill_sub.config(text=f"Always-on load alone, ₱{-plan.unused_budget:,.2f} over budget")
 
         self.lbl_kwh_val.config(text=f"{plan.total_kwh:,.1f} kWh")
         self.lbl_kwh_sub.config(text=f"{plan.total_kwh / plan.days_in_month:,.2f} kWh/day (Cap: {plan.kwh_cap:,.1f} kWh)")
@@ -452,18 +479,19 @@ class EnergyOptimizerGUI:
         for row in self.inv_tree.get_children():
             self.inv_tree.delete(row)
 
-        for i, a in enumerate(self.current_household_data.get("appliances", [])):
-            is_fixed = a.get("type") == FIXED
-            pri = a.get("priority", "-" if is_fixed else i + 1)
+        # The data is normalized, so every field is present and the rows are
+        # in the same order as the list (fixed first, then by priority).
+        for a in self.current_household_data.get("appliances", []):
+            is_fixed = a["type"] == FIXED
             self.inv_tree.insert("", tk.END, values=(
-                pri,
-                a.get("name"),
-                a.get("type", VARIABLE),
-                a.get("watts", 0),
-                a.get("quantity", 1),
-                a.get("max_hours", 24 if is_fixed else 4.0),
-                a.get("min_hours", 24 if is_fixed else 0.0),
-                a.get("days_per_week", 7),
+                "-" if is_fixed else a["priority"],
+                a["name"],
+                a["type"],
+                f"{a['watts']:g}",
+                a["quantity"],
+                24 if is_fixed else f"{a['max_hours']:g}",
+                24 if is_fixed else f"{a['min_hours']:g}",
+                7 if is_fixed else f"{a['days_per_week']:g}",
             ))
 
     def _draw_charts(self, plan):
@@ -481,9 +509,13 @@ class EnergyOptimizerGUI:
 
         # 2. Energy Share Donut Chart
         self.ax_share.clear()
-        sched = daily_schedule(plan)
-        labels = [r["appliance"][:15] for r in sched if r["monthly_kwh"] > 0]
-        kwhs = [r["monthly_kwh"] for r in sched if r["monthly_kwh"] > 0]
+        sched = [r for r in daily_schedule(plan) if r["monthly_kwh"] > 0]
+        total = sum(r["monthly_kwh"] for r in sched)
+        # Group slices under 3% so their labels do not overlap.
+        big = [r for r in sched if r["monthly_kwh"] >= 0.03 * total]
+        small = sum(r["monthly_kwh"] for r in sched if r["monthly_kwh"] < 0.03 * total)
+        labels = [r["appliance"][:15] for r in big] + (["Others (<3% each)"] if small else [])
+        kwhs = [r["monthly_kwh"] for r in big] + ([small] if small else [])
 
         if kwhs:
             self.ax_share.pie(kwhs, labels=labels, autopct="%1.0f%%", startangle=140, textprops={"fontsize": 7})
@@ -509,10 +541,15 @@ class EnergyOptimizerGUI:
             bills, comforts = [], []
             for b in budgets:
                 p = optimize(hh, b, mode=mode, options=opts, days_in_month=days, step=0.25)
-                bills.append(p.cost)
-                comforts.append(p.comfort_score())
+                # Infeasible budgets have no plan: leave a gap in the lines.
+                bills.append(p.cost if p.feasible else float("nan"))
+                comforts.append(p.comfort_score() if p.feasible else float("nan"))
 
             self.ax_sim_bill.clear()
+            ax_sim_comf = self.ax_sim_comf
+            ax_sim_comf.clear()
+            ax_sim_comf.yaxis.set_label_position("right")
+            ax_sim_comf.yaxis.tick_right()
 
             color1 = "#059669"
             color2 = "#2563eb"
@@ -523,7 +560,6 @@ class EnergyOptimizerGUI:
             self.ax_sim_bill.tick_params(axis="y", labelcolor=color1)
             self.ax_sim_bill.grid(True, linestyle="--", alpha=0.5)
 
-            ax_sim_comf = self.ax_sim_bill.twinx()
             ax_sim_comf.set_ylabel("Comfort Score (%)", color=color2, fontsize=9)
             ax_sim_comf.plot(budgets, comforts, color=color2, linewidth=2, linestyle="--", marker="o")
             ax_sim_comf.tick_params(axis="y", labelcolor=color2)
@@ -552,10 +588,12 @@ class EnergyOptimizerGUI:
         if path:
             try:
                 with open(path, "r", encoding="utf-8") as f:
-                    self.current_household_data = json.load(f)
-                self.run_optimization()
+                    data = normalized(json.load(f))
             except Exception as e:
-                messagebox.showerror("File Error", f"Failed to load JSON: {e}")
+                messagebox.showerror("File Error", f"Failed to load household: {e}")
+                return
+            self.current_household_data = data
+            self.run_optimization()
 
     def _export_json(self):
         path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
@@ -579,30 +617,62 @@ class EnergyOptimizerGUI:
             except Exception as e:
                 messagebox.showerror("Export Error", str(e))
 
+    def _names(self, skip=None):
+        return {a["name"] for i, a in enumerate(self.current_household_data["appliances"])
+                if i != skip}
+
+    def _commit(self, apps):
+        """Renumber variable priorities in list order, validate, and rerun.
+        On an invalid household the previous one is kept."""
+        p = 1
+        for a in apps:
+            if a.get("type") == FIXED:
+                a["priority"] = None
+            else:
+                a["priority"], p = p, p + 1
+        try:
+            data = normalized({**self.current_household_data, "appliances": apps})
+        except (ValueError, KeyError, TypeError) as e:
+            messagebox.showerror("Invalid Appliance", str(e))
+            return False
+        self.current_household_data = data
+        self.run_optimization()
+        return True
+
+    def _selected_index(self):
+        sel = self.inv_tree.selection()
+        if not sel:
+            messagebox.showwarning("Select Item", "Please select an appliance from the table first.")
+            return None
+        return self.inv_tree.index(sel[0])
+
+    def _reselect(self, idx):
+        rows = self.inv_tree.get_children()
+        if 0 <= idx < len(rows):
+            self.inv_tree.selection_set(rows[idx])
+            self.inv_tree.see(rows[idx])
+
     def _open_catalogue_picker(self):
         dlg = CataloguePickerDialog(self.root, self.catalogue)
         self.root.wait_window(dlg.top)
         if dlg.selected_item:
             ref = dlg.selected_item
-            is_fixed = ref.get("category") == FIXED
             new_app = {
-                "name": ref["name"],
+                "name": unique_name(ref["name"], self._names()),
                 "catalogue": ref["name"],
-                "type": FIXED if is_fixed else VARIABLE,
-                "watts": float(ref.get("median_watts", 100)),
+                "type": FIXED if ref.get("category") == FIXED else VARIABLE,
+                "watts": float(ref["median_watts"]),
                 "quantity": 1,
-                "max_hours": float(ref.get("median_hours_per_day", 4.0)),
+                "max_hours": float(ref["median_hours_per_day"]),
                 "min_hours": 0.0,
-                "days_per_week": float(ref.get("median_days_per_week", 7.0)),
+                "days_per_week": float(ref["median_days_per_week"]),
             }
-            self.current_household_data.setdefault("appliances", []).append(new_app)
-            self._reassign_priorities()
-            self.run_optimization()
+            self._commit(self.current_household_data["appliances"] + [new_app])
 
     def _add_custom_appliance(self):
-        apps = self.current_household_data.setdefault("appliances", [])
+        apps = self.current_household_data["appliances"]
         new_app = {
-            "name": f"Custom Appliance #{len(apps) + 1}",
+            "name": unique_name("Custom Appliance", self._names()),
             "type": VARIABLE,
             "watts": 100.0,
             "quantity": 1,
@@ -610,70 +680,48 @@ class EnergyOptimizerGUI:
             "min_hours": 0.0,
             "days_per_week": 7.0,
         }
-        dlg = ApplianceEditDialog(self.root, new_app)
+        dlg = ApplianceEditDialog(self.root, new_app, self._names())
         self.root.wait_window(dlg.top)
         if dlg.result:
-            apps.append(dlg.result)
-            self._reassign_priorities()
-            self.run_optimization()
+            self._commit(apps + [dlg.result])
 
     def _edit_selected_appliance(self):
-        sel = self.inv_tree.selection()
-        if not sel:
-            messagebox.showwarning("Select Item", "Please select an appliance from the table first.")
+        idx = self._selected_index()
+        apps = list(self.current_household_data["appliances"])
+        if idx is None or not 0 <= idx < len(apps):
             return
-        idx = self.inv_tree.index(sel[0])
-        apps = self.current_household_data.get("appliances", [])
-        if 0 <= idx < len(apps):
-            dlg = ApplianceEditDialog(self.root, apps[idx])
-            self.root.wait_window(dlg.top)
-            if dlg.result:
-                apps[idx] = dlg.result
-                self._reassign_priorities()
-                self.run_optimization()
+        dlg = ApplianceEditDialog(self.root, apps[idx], self._names(skip=idx))
+        self.root.wait_window(dlg.top)
+        if dlg.result:
+            apps[idx] = dlg.result
+            self._commit(apps)
 
     def _delete_selected_appliance(self):
-        sel = self.inv_tree.selection()
-        if not sel:
-            messagebox.showwarning("Select Item", "Please select an appliance from the table first.")
-            return
-        idx = self.inv_tree.index(sel[0])
-        apps = self.current_household_data.get("appliances", [])
-        if 0 <= idx < len(apps):
+        idx = self._selected_index()
+        apps = list(self.current_household_data["appliances"])
+        if idx is not None and 0 <= idx < len(apps):
             del apps[idx]
-            self._reassign_priorities()
-            self.run_optimization()
+            self._commit(apps)
+
+    def _move(self, delta):
+        """Swap the selected variable appliance with its neighbour. Fixed
+        appliances have no priority, so they cannot be moved."""
+        idx = self._selected_index()
+        if idx is None:
+            return
+        apps = list(self.current_household_data["appliances"])
+        j = idx + delta
+        if not (0 <= j < len(apps)) or FIXED in (apps[idx]["type"], apps[j]["type"]):
+            return
+        apps[idx], apps[j] = apps[j], apps[idx]
+        if self._commit(apps):
+            self._reselect(j)
 
     def _move_pri_up(self):
-        sel = self.inv_tree.selection()
-        if not sel:
-            return
-        idx = self.inv_tree.index(sel[0])
-        apps = self.current_household_data.get("appliances", [])
-        if idx > 0:
-            apps[idx], apps[idx - 1] = apps[idx - 1], apps[idx]
-            self._reassign_priorities()
-            self.run_optimization()
+        self._move(-1)
 
     def _move_pri_down(self):
-        sel = self.inv_tree.selection()
-        if not sel:
-            return
-        idx = self.inv_tree.index(sel[0])
-        apps = self.current_household_data.get("appliances", [])
-        if idx < len(apps) - 1:
-            apps[idx], apps[idx + 1] = apps[idx + 1], apps[idx]
-            self._reassign_priorities()
-            self.run_optimization()
-
-    def _reassign_priorities(self):
-        p = 1
-        for a in self.current_household_data.get("appliances", []):
-            if a.get("type") != FIXED:
-                a["priority"] = p
-                p += 1
-            else:
-                a["priority"] = None
+        self._move(+1)
 
 
 # ---------------------------------------------------------------------------
@@ -743,67 +791,73 @@ class CataloguePickerDialog:
 
 
 class ApplianceEditDialog:
-    def __init__(self, parent, appliance_dict):
+    FIELDS = [  # (key, label, kind)
+        ("name", "Appliance Name:", str),
+        ("type", "Type:", "type"),
+        ("watts", "Wattage (W):", float),
+        ("quantity", "Quantity:", int),
+        ("max_hours", "Desired Hours (h/day):", float),
+        ("min_hours", "Minimum Hours (h/day):", float),
+        ("days_per_week", "Days per Week:", float),
+    ]
+
+    def __init__(self, parent, appliance_dict, taken_names=()):
         self.top = tk.Toplevel(parent)
         self.top.title("Edit Appliance Parameters")
-        self.top.geometry("380x320")
+        self.top.geometry("400x330")
         self.top.transient(parent)
         self.top.grab_set()
+        self.top.columnconfigure(1, weight=1)
 
         self.result = None
-        app = appliance_dict
+        self.original = appliance_dict
+        self.taken = set(taken_names)
+        self.vars = {}
+        defaults = {"name": "", "type": VARIABLE, "watts": 100, "quantity": 1,
+                    "max_hours": 4.0, "min_hours": 0.0, "days_per_week": 7.0}
+        for row, (key, label, kind) in enumerate(self.FIELDS):
+            ttk.Label(self.top, text=label).grid(row=row, column=0, sticky=tk.W, padx=10, pady=5)
+            value = appliance_dict.get(key)
+            # StringVar for every field: a half-typed number must not raise
+            # a TclError before the user presses Save.
+            var = tk.StringVar(value=str(defaults[key] if value is None else value))
+            if kind == "type":
+                widget = ttk.Combobox(self.top, textvariable=var, values=[VARIABLE, FIXED], state="readonly")
+            else:
+                widget = ttk.Entry(self.top, textvariable=var)
+            # grid() takes sticky=, not pack()'s fill=.
+            widget.grid(row=row, column=1, sticky=tk.EW, padx=10, pady=5)
+            self.vars[key] = var
 
-        ttk.Label(self.top, text="Appliance Name:").grid(row=0, column=0, sticky=tk.W, padx=10, pady=5)
-        self.name_var = tk.StringVar(value=app.get("name", ""))
-        ttk.Entry(self.top, textvariable=self.name_var).grid(row=0, column=1, fill=tk.X, padx=10, pady=5)
-
-        ttk.Label(self.top, text="Type:").grid(row=1, column=0, sticky=tk.W, padx=10, pady=5)
-        self.type_var = tk.StringVar(value=app.get("type", VARIABLE))
-        ttk.Combobox(self.top, textvariable=self.type_var, values=[VARIABLE, FIXED], state="readonly").grid(row=1, column=1, fill=tk.X, padx=10, pady=5)
-
-        ttk.Label(self.top, text="Wattage (W):").grid(row=2, column=0, sticky=tk.W, padx=10, pady=5)
-        self.watts_var = tk.DoubleVar(value=app.get("watts", 100))
-        ttk.Entry(self.top, textvariable=self.watts_var).grid(row=2, column=1, fill=tk.X, padx=10, pady=5)
-
-        ttk.Label(self.top, text="Quantity:").grid(row=3, column=0, sticky=tk.W, padx=10, pady=5)
-        self.qty_var = tk.IntVar(value=app.get("quantity", 1))
-        ttk.Entry(self.top, textvariable=self.qty_var).grid(row=3, column=1, fill=tk.X, padx=10, pady=5)
-
-        ttk.Label(self.top, text="Desired Hours (h/day):").grid(row=4, column=0, sticky=tk.W, padx=10, pady=5)
-        self.max_h_var = tk.DoubleVar(value=app.get("max_hours", 4.0))
-        ttk.Entry(self.top, textvariable=self.max_h_var).grid(row=4, column=1, fill=tk.X, padx=10, pady=5)
-
-        ttk.Label(self.top, text="Minimum Hours (h/day):").grid(row=5, column=0, sticky=tk.W, padx=10, pady=5)
-        self.min_h_var = tk.DoubleVar(value=app.get("min_hours", 0.0))
-        ttk.Entry(self.top, textvariable=self.min_h_var).grid(row=5, column=1, fill=tk.X, padx=10, pady=5)
-
-        ttk.Label(self.top, text="Days per Week:").grid(row=6, column=0, sticky=tk.W, padx=10, pady=5)
-        self.days_var = tk.DoubleVar(value=app.get("days_per_week", 7.0))
-        ttk.Entry(self.top, textvariable=self.days_var).grid(row=6, column=1, fill=tk.X, padx=10, pady=5)
-
+        ttk.Label(self.top, text="Fixed appliances always run 24 h/day, 7 days/week.",
+                  style="KpiSub.TLabel").grid(row=len(self.FIELDS), column=0, columnspan=2,
+                                              sticky=tk.W, padx=10)
         btn_box = ttk.Frame(self.top)
-        btn_box.grid(row=7, column=0, columnspan=2, fill=tk.X, padx=10, pady=15)
+        btn_box.grid(row=len(self.FIELDS) + 1, column=0, columnspan=2, sticky=tk.EW, padx=10, pady=12)
         ttk.Button(btn_box, text="Save Parameters", command=self._on_save).pack(side=tk.RIGHT)
         ttk.Button(btn_box, text="Cancel", command=self.top.destroy).pack(side=tk.RIGHT, padx=5)
 
     def _on_save(self):
+        raw = {k: v.get().strip() for k, v in self.vars.items()}
         try:
-            self.result = {
-                "name": self.name_var.get().strip(),
-                "type": self.type_var.get(),
-                "watts": float(self.watts_var.get()),
-                "quantity": int(self.qty_var.get()),
-                "max_hours": float(self.max_h_var.get()),
-                "min_hours": float(self.min_h_var.get()),
-                "days_per_week": float(self.days_var.get()),
-            }
-            if self.result["type"] == FIXED:
-                self.result["max_hours"] = 24.0
-                self.result["min_hours"] = 24.0
-                self.result["days_per_week"] = 7.0
-            self.top.destroy()
+            result = {**self.original}  # keeps "catalogue" (time-of-day profile)
+            result.update(
+                name=raw["name"],
+                type=raw["type"],
+                watts=float(raw["watts"]),
+                quantity=int(raw["quantity"]),
+                max_hours=float(raw["max_hours"]),
+                min_hours=float(raw["min_hours"]),
+                days_per_week=float(raw["days_per_week"]),
+            )
+            if result["name"] in self.taken:
+                raise ValueError(f"another appliance is already named '{result['name']}'")
+            from_dict(result)  # same checks the optimizer applies
         except ValueError as e:
-            messagebox.showerror("Input Error", f"Invalid numerical value: {e}")
+            messagebox.showerror("Input Error", str(e), parent=self.top)
+            return
+        self.result = result
+        self.top.destroy()
 
 
 def main():
